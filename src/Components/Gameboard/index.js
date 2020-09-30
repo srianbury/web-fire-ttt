@@ -1,11 +1,18 @@
 import React, { useContext } from "react";
 import { MatchContext } from "../Match";
 import AuthenticationContext from "../Authentication";
+import FirebaseContext from "../FirebaseContext";
+import { fullboard, rowWin, colWin, diagonalWin } from "./functions";
 
 import "./index.css";
 
 const GameboardContainer = () => {
-  return <GameboardView />;
+  return (
+    <div>
+      <TurnContainer />
+      <GameboardView />
+    </div>
+  );
 };
 
 const GameboardView = () => (
@@ -29,16 +36,34 @@ const GameboardView = () => (
 );
 
 const SquareContainer = ({ index, mark }) => {
+  const firebase = useContext(FirebaseContext);
   const { user } = useContext(AuthenticationContext);
   const { uid } = user;
-  const { value } = useContext(MatchContext);
+  const { matchId, value } = useContext(MatchContext);
   const { board } = value;
 
   function onClick() {
-    if (mark) {
+    if (mark || value.turn !== uid || gameover(board)) {
       return;
     }
-    console.log({ index, mark });
+
+    const nextBoardState = value.board.map((square, squareIndex) => {
+      if (squareIndex === index) {
+        return uid;
+      }
+      return square;
+    });
+
+    const nextTurnState = value.players.find(player => player.uid !== uid).uid;
+
+    firebase
+      .firestore()
+      .collection("matches")
+      .doc(matchId)
+      .update({
+        board: nextBoardState,
+        turn: nextTurnState
+      });
   }
 
   return <SquareView onClick={onClick} mark={board[index]} uid={uid} />;
@@ -59,6 +84,33 @@ function getSquareMark(mark, uid) {
   }
 
   return "O";
+}
+
+const TurnContainer = () => {
+  const { user } = useContext(AuthenticationContext);
+  const { uid } = user;
+  const { value } = useContext(MatchContext);
+  const { turn } = value;
+
+  return (
+    <TurnView gameover={gameover(value.board)} isPlayersTurn={uid === turn} />
+  );
+};
+
+const TurnView = ({ gameover, isPlayersTurn }) => (
+  <div>
+    {gameover
+      ? "Gameover!"
+      : isPlayersTurn
+      ? "Your turn"
+      : "Waiting for opponent"}
+  </div>
+);
+
+function gameover(board) {
+  return (
+    fullboard(board) || rowWin(board) || colWin(board) || diagonalWin(board)
+  );
 }
 
 export default GameboardContainer;

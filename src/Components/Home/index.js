@@ -13,15 +13,34 @@ const HomeContainer = () => {
 
   async function createMatch() {
     setCreating(true);
-    const newMatchRef = await firebase
+
+    let code;
+    while (!code) {
+      const tryCode = createRandomCode();
+      console.log({ tryCode });
+      const newMatchRef = await firebase
+        .firestore()
+        .collection("matches")
+        .doc(tryCode)
+        .get();
+      if (!newMatchRef.data()) {
+        code = tryCode;
+      } else {
+        setTimeout(() => {}, 500);
+      }
+    }
+
+    await firebase
       .firestore()
       .collection("matches")
-      .add({
+      .doc(code)
+      .set({
         players: [{ uid, isAnonymous, displayName, ready: false }],
-        board: [null, null, null, null, null, null, null, null, null],
-        gameState: CONSTANTS.GAME_STATE_LOBBY
+        turn: uid,
+        board: [null, null, null, null, null, null, null, null, null]
       });
-    history.push(`/match/${newMatchRef.id}`);
+
+    history.push(`/match/${code}`);
   }
 
   return <HomeView createMatch={createMatch} creating={creating} />;
@@ -35,5 +54,14 @@ const HomeView = ({ createMatch, creating }) => (
     {creating ? null : <Link to={CONSTANTS.ROUTE_JOIN}>Join a match</Link>}
   </div>
 );
+
+function createRandomCode() {
+  const VALUES = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  let code = "";
+  while (code.length < 6) {
+    code += VALUES[parseInt(Math.random() * 1000) % VALUES.length];
+  }
+  return code;
+}
 
 export default HomeContainer;
