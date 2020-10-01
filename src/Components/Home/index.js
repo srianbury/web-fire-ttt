@@ -17,7 +17,6 @@ const HomeContainer = () => {
     let code;
     while (!code) {
       const tryCode = createRandomCode();
-      console.log({ tryCode });
       const newMatchRef = await firebase
         .firestore()
         .collection("matches")
@@ -25,8 +24,6 @@ const HomeContainer = () => {
         .get();
       if (!newMatchRef.data()) {
         code = tryCode;
-      } else {
-        setTimeout(() => {}, 500);
       }
     }
 
@@ -35,9 +32,10 @@ const HomeContainer = () => {
       .collection("matches")
       .doc(code)
       .set({
-        players: [{ uid, isAnonymous, displayName, ready: false }],
+        players: [{ uid, isAnonymous, displayName, ready: false, host: true }],
         turn: uid,
-        board: [null, null, null, null, null, null, null, null, null]
+        board: [null, null, null, null, null, null, null, null, null],
+        gameState: CONSTANTS.GAME_STATE_LOBBY
       });
 
     history.push(`/match/${code}`);

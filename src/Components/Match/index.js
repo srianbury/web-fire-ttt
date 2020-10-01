@@ -5,6 +5,7 @@ import FirebaseContext from "../FirebaseContext";
 import Loading from "../Loading";
 import AuthenticationContext from "../Authentication";
 import Gameboard from "../Gameboard";
+import * as CONSTANTS from "../../Constants";
 
 function bothPlayersAreReady(players) {
   let ready = true;
@@ -38,10 +39,37 @@ const MatchContextProvider = ({ children }) => {
   );
 };
 
+function notAlreadyPlaying(gameState) {
+  return gameState !== CONSTANTS.GAME_STATE_PLAYING;
+}
+
 const MatchContainer = () => {
   const firebase = useContext(FirebaseContext);
   const { user } = useContext(AuthenticationContext);
   const { matchId, value, loading } = useContext(MatchContext);
+
+  if (value) {
+    const { players, gameState } = value;
+    const thisPlayer = players.find(player => player.uid === user.uid);
+    if (
+      thisPlayer.host &&
+      bothPlayersAreReady(players) &&
+      notAlreadyPlaying(gameState)
+    ) {
+      const nextPlayerStates = players.map(player => ({
+        ...player,
+        ready: false
+      })); // set players as not ready as the match begins so we can re-use this field to start a rematch
+      firebase
+        .firestore()
+        .collection("matches")
+        .doc(matchId)
+        .update({
+          gameState: CONSTANTS.GAME_STATE_PLAYING,
+          players: nextPlayerStates
+        });
+    }
+  }
 
   async function toggleReady() {
     const nextPlayersState = value.players.map(player => {
@@ -67,25 +95,30 @@ const MatchContainer = () => {
       matchId={matchId}
       players={value.players}
       toggleReady={toggleReady}
+      gameState={value.gameState}
     />
   );
 };
 
-const MatchView = ({ matchId, players, toggleReady }) => (
+const MatchView = ({ matchId, players, toggleReady, gameState }) => (
   <div>
     <div>Match {matchId}</div>
-    <ReadyStateContainer players={players} toggleReady={toggleReady} />
+    <ReadyStateContainer
+      players={players}
+      toggleReady={toggleReady}
+      gameState={gameState}
+    />
   </div>
 );
 
-const ReadyStateContainer = ({ players, toggleReady }) => {
+const ReadyStateContainer = ({ players, toggleReady, gameState }) => {
   if (players.length === 1) {
     return <ReadyStateViewWaitingForOpponent />;
   }
-  if (bothPlayersAreReady(players)) {
-    return <Gameboard />;
+  if (gameState === CONSTANTS.GAME_STATE_LOBBY) {
+    return <ReadyStateView players={players} toggleReady={toggleReady} />;
   }
-  return <ReadyStateView players={players} toggleReady={toggleReady} />;
+  return <Gameboard />;
 };
 
 const ReadyStateViewWaitingForOpponent = () => (

@@ -3,14 +3,103 @@ import { MatchContext } from "../Match";
 import AuthenticationContext from "../Authentication";
 import FirebaseContext from "../FirebaseContext";
 import { fullboard, rowWin, colWin, diagonalWin } from "./functions";
+import * as CONSTANTS from "../../Constants";
 
 import "./index.css";
+
+function bothPlayersAreReady(players) {
+  let ready = true;
+  players.forEach(player => {
+    if (!player.ready) {
+      ready = false;
+    }
+  });
+  return ready;
+}
+
+const RematchContainer = () => {
+  const firebase = useContext(FirebaseContext);
+  const { user } = useContext(AuthenticationContext);
+  const { matchId, value } = useContext(MatchContext);
+  const { board, players, gameState } = value;
+
+  async function toggleReady() {
+    const nextPlayersState = players.map(player => {
+      if (player.uid !== user.uid) {
+        return player;
+      }
+      return { ...player, ready: !player.ready };
+    });
+    console.log({ nextPlayersState });
+    firebase
+      .firestore()
+      .collection("matches")
+      .doc(matchId)
+      .update({
+        players: nextPlayersState
+      });
+  }
+
+  if (gameover(board)) {
+    if (
+      bothPlayersAreReady(players) &&
+      gameState === CONSTANTS.GAME_STATE_GAMEOVER
+    ) {
+      const nextPlayersState = players.map(player => ({
+        ...player,
+        ready: false
+      }));
+      firebase
+        .firestore()
+        .collection("matches")
+        .doc(matchId)
+        .update({
+          gameState: CONSTANTS.GAME_STATE_PLAYING,
+          board: [null, null, null, null, null, null, null, null, null],
+          players: nextPlayersState
+        });
+    }
+    return <RematchView players={players} toggleReady={toggleReady} />;
+  }
+  return null;
+};
+
+const RematchView = ({ players, toggleReady }) => (
+  <div>
+    <div>Rematch?</div>
+    {players.map(player => (
+      <RematchQuestionContainer
+        key={player.uid}
+        player={player}
+        toggleReady={toggleReady}
+      />
+    ))}
+  </div>
+);
+
+const RematchQuestionContainer = ({ player, toggleReady }) => {
+  const { user } = useContext(AuthenticationContext);
+
+  return (
+    <div>
+      <div>{player.isAnonymous ? "Anon" : player.displayName}</div>
+      {user.uid === player.uid ? (
+        <button type="button" onClick={toggleReady}>
+          {player.ready ? "Cancel" : "Ready up"}
+        </button>
+      ) : (
+        <div>{player.ready ? "Ready" : "Not Ready"}</div>
+      )}
+    </div>
+  );
+};
 
 const GameboardContainer = () => {
   return (
     <div>
       <TurnContainer />
       <GameboardView />
+      <RematchContainer />
     </div>
   );
 };
@@ -40,7 +129,17 @@ const SquareContainer = ({ index, mark }) => {
   const { user } = useContext(AuthenticationContext);
   const { uid } = user;
   const { matchId, value } = useContext(MatchContext);
-  const { board } = value;
+  const { board, gameState } = value;
+
+  if (gameover(board) && gameState !== CONSTANTS.GAME_STATE_GAMEOVER) {
+    firebase
+      .firestore()
+      .collection("matches")
+      .doc(matchId)
+      .update({
+        gameState: CONSTANTS.GAME_STATE_GAMEOVER
+      });
+  }
 
   function onClick() {
     if (mark || value.turn !== uid || gameover(board)) {

@@ -19,7 +19,13 @@ const JoinContainer = () => {
       .doc(code)
       .get();
     const { players: currentPlayers } = value.data();
-    const newPlayer = { displayName, isAnonymous, uid, ready: false };
+    const newPlayer = {
+      displayName,
+      isAnonymous,
+      uid,
+      ready: false,
+      host: false
+    };
     const nextPlayersState = [...currentPlayers, newPlayer];
     await firebase
       .firestore()
