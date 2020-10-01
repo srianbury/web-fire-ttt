@@ -22,6 +22,7 @@ const RematchContainer = () => {
   const { user } = useContext(AuthenticationContext);
   const { matchId, value } = useContext(MatchContext);
   const { board, players, gameState } = value;
+  const thisPlayer = players.find(player => player.uid === user.uid);
 
   async function toggleReady() {
     const nextPlayersState = players.map(player => {
@@ -30,7 +31,6 @@ const RematchContainer = () => {
       }
       return { ...player, ready: !player.ready };
     });
-    console.log({ nextPlayersState });
     firebase
       .firestore()
       .collection("matches")
@@ -43,7 +43,8 @@ const RematchContainer = () => {
   if (gameover(board)) {
     if (
       bothPlayersAreReady(players) &&
-      gameState === CONSTANTS.GAME_STATE_GAMEOVER
+      gameState === CONSTANTS.GAME_STATE_GAMEOVER &&
+      thisPlayer.host
     ) {
       const nextPlayersState = players.map(player => ({
         ...player,
