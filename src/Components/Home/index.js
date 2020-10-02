@@ -3,6 +3,7 @@ import { Link, useHistory } from "react-router-dom";
 import FirebaseContext from "../FirebaseContext";
 import AuthenticationContext from "../Authentication";
 import * as CONSTANTS from "../../Constants";
+import { getRandomMark } from "../../Functions";
 
 const HomeContainer = () => {
   const firebase = useContext(FirebaseContext);
@@ -32,7 +33,16 @@ const HomeContainer = () => {
       .collection("matches")
       .doc(code)
       .set({
-        players: [{ uid, isAnonymous, displayName, ready: false, host: true }],
+        players: [
+          {
+            uid,
+            isAnonymous,
+            displayName,
+            ready: false,
+            host: true,
+            mark: getRandomMark()
+          }
+        ],
         turn: uid,
         board: [null, null, null, null, null, null, null, null, null],
         gameState: CONSTANTS.GAME_STATE_LOBBY

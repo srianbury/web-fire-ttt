@@ -2,7 +2,7 @@ import React, { useState, useContext } from "react";
 import { useHistory } from "react-router-dom";
 import FirebaseContext from "../FirebaseContext";
 import AuthenticationContext from "../Authentication";
-import { getRandomFirstTurn } from "../../Functions";
+import { getRandomFirstTurn, getOppositeMark } from "../../Functions";
 
 const JoinContainer = () => {
   const [joining, setJoining] = useState(false);
@@ -20,12 +20,14 @@ const JoinContainer = () => {
       .doc(code)
       .get();
     const { players: currentPlayers } = value.data();
+    const opponent = currentPlayers.find(player => player.uid !== user.uid);
     const newPlayer = {
       displayName,
       isAnonymous,
       uid,
       ready: false,
-      host: false
+      host: false,
+      mark: getOppositeMark(opponent.mark)
     };
     const nextPlayersState = [...currentPlayers, newPlayer];
     const turn = getRandomFirstTurn(nextPlayersState);

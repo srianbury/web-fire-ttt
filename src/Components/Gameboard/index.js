@@ -137,7 +137,7 @@ const SquareContainer = ({ index }) => {
   const { user } = useContext(AuthenticationContext);
   const { uid } = user;
   const { matchId, value } = useContext(MatchContext);
-  const { board, gameState } = value;
+  const { board, gameState, players } = value;
   const gameoverState = gameover(board);
 
   if (gameoverState.gameover && gameState !== CONSTANTS.GAME_STATE_GAMEOVER) {
@@ -180,11 +180,11 @@ const SquareContainer = ({ index }) => {
       winningSet={gameoverState.winningSet}
       onClick={onClick}
       mark={board[index]}
-      uid={uid}
+      players={players}
     />
   );
 };
-const SquareView = ({ index, winningSet, onClick, mark, uid }) => (
+const SquareView = ({ index, winningSet, onClick, mark, players }) => (
   <button
     style={{
       color: winningSet.includes(index) ? "red" : "black"
@@ -193,20 +193,20 @@ const SquareView = ({ index, winningSet, onClick, mark, uid }) => (
     className="square"
     onClick={onClick}
   >
-    {getSquareMark(mark, uid)}
+    {getSquareMark(mark, players)}
   </button>
 );
 
-function getSquareMark(mark, uid) {
+function getSquareMark(mark, players) {
   if (!mark) {
     return "";
   }
 
-  if (uid === mark) {
-    return "X";
-  }
+  return getMark(mark, players);
+}
 
-  return "O";
+function getMark(mark, players) {
+  return players.find(player => player.uid === mark).mark;
 }
 
 const TurnContainer = () => {
