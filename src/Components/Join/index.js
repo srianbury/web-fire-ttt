@@ -2,6 +2,7 @@ import React, { useState, useContext } from "react";
 import { useHistory } from "react-router-dom";
 import FirebaseContext from "../FirebaseContext";
 import AuthenticationContext from "../Authentication";
+import { getRandomTurn, getOppositeMark } from "../../Functions";
 
 const JoinContainer = () => {
   const [joining, setJoining] = useState(false);
@@ -19,20 +20,24 @@ const JoinContainer = () => {
       .doc(code)
       .get();
     const { players: currentPlayers } = value.data();
+    const opponent = currentPlayers.find(player => player.uid !== user.uid);
     const newPlayer = {
       displayName,
       isAnonymous,
       uid,
       ready: false,
-      host: false
+      host: false,
+      mark: getOppositeMark(opponent)
     };
     const nextPlayersState = [...currentPlayers, newPlayer];
+    const turn = getRandomTurn(nextPlayersState);
     await firebase
       .firestore()
       .collection("matches")
       .doc(code)
       .update({
-        players: nextPlayersState
+        players: nextPlayersState,
+        turn
       });
     history.push(`/match/${code}`);
   }

@@ -4,18 +4,9 @@ import AuthenticationContext from "../Authentication";
 import FirebaseContext from "../FirebaseContext";
 import { gameover } from "./functions";
 import * as CONSTANTS from "../../Constants";
+import { bothPlayersAreReady } from "../../Functions";
 
 import "./index.css";
-
-function bothPlayersAreReady(players) {
-  let ready = true;
-  players.forEach(player => {
-    if (!player.ready) {
-      ready = false;
-    }
-  });
-  return ready;
-}
 
 const RematchContainer = () => {
   const firebase = useContext(FirebaseContext);
@@ -40,13 +31,13 @@ const RematchContainer = () => {
   }
 
   useEffect(() => {
-    console.log("Starting rematch");
     const thisPlayer = players.find(player => player.uid === user.uid);
     if (
       bothPlayersAreReady(players) &&
       gameState === CONSTANTS.GAME_STATE_GAMEOVER &&
       thisPlayer.host
     ) {
+      console.log("Starting rematch");
       const nextPlayersState = players.map(player => ({
         ...player,
         ready: false
@@ -129,14 +120,17 @@ const GameboardView = () => (
   </div>
 );
 
-const SquareContainer = ({ index, mark }) => {
+const SquareContainer = ({ index }) => {
   const firebase = useContext(FirebaseContext);
   const { user } = useContext(AuthenticationContext);
   const { uid } = user;
   const { matchId, value } = useContext(MatchContext);
-  const { board, gameState } = value;
+  const { board, gameState, players } = value;
+  const thisPlayersMark = players.find(player => player.uid === user.uid).mark;
+  const gameoverState = gameover(board);
+  console.log({ gameoverState });
 
-  if (gameover(board).gameover && gameState !== CONSTANTS.GAME_STATE_GAMEOVER) {
+  if (gameState.gameover && gameState !== CONSTANTS.GAME_STATE_GAMEOVER) {
     firebase
       .firestore()
       .collection("matches")
@@ -147,13 +141,20 @@ const SquareContainer = ({ index, mark }) => {
   }
 
   function onClick() {
-    if (mark || value.turn !== uid || gameover(board).gameover) {
+    console.log({
+      index,
+      value,
+      uid,
+      board,
+      gameoverState
+    });
+    if (board[index] || value.turn !== uid || gameover.gameover) {
       return;
     }
 
     const nextBoardState = value.board.map((square, squareIndex) => {
       if (squareIndex === index) {
-        return uid;
+        return { uid, mark: thisPlayersMark };
       }
       return square;
     });
@@ -173,13 +174,14 @@ const SquareContainer = ({ index, mark }) => {
   return (
     <SquareView
       index={index}
-      winningSet={gameover(board).winningSet}
+      winningSet={gameoverState.winningSet}
       onClick={onClick}
       mark={board[index]}
       uid={uid}
     />
   );
 };
+
 const SquareView = ({ index, winningSet, onClick, mark, uid }) => (
   <button
     style={{
@@ -189,20 +191,12 @@ const SquareView = ({ index, winningSet, onClick, mark, uid }) => (
     className="square"
     onClick={onClick}
   >
-    {getSquareMark(mark, uid)}
+    {getMark(mark)}
   </button>
 );
 
-function getSquareMark(mark, uid) {
-  if (!mark) {
-    return "";
-  }
-
-  if (uid === mark) {
-    return "X";
-  }
-
-  return "O";
+function getMark(mark) {
+  return mark ? mark.mark : "";
 }
 
 const TurnContainer = () => {
@@ -237,7 +231,7 @@ const GameoverMessage = ({ winner }) => {
   if (winner) {
     return (
       <div>
-        {winner === user.uid
+        {winner.uid === user.uid
           ? "You win!"
           : `${opponent.isAnonymous ? "Anon" : opponent.displayName} Wins`}
       </div>
