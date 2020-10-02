@@ -4,6 +4,7 @@ import AuthenticationContext from "../Authentication";
 import FirebaseContext from "../FirebaseContext";
 import { gameover } from "./functions";
 import * as CONSTANTS from "../../Constants";
+import { getRandomFirstTurn } from "../../Functions";
 
 import "./index.css";
 
@@ -51,6 +52,7 @@ const RematchContainer = () => {
         ...player,
         ready: false
       }));
+      const turn = getRandomFirstTurn(nextPlayersState);
       firebase
         .firestore()
         .collection("matches")
@@ -58,7 +60,8 @@ const RematchContainer = () => {
         .update({
           gameState: CONSTANTS.GAME_STATE_PLAYING,
           board: [null, null, null, null, null, null, null, null, null],
-          players: nextPlayersState
+          players: nextPlayersState,
+          turn
         });
     }
   }, [firebase, user, board, players, gameState, matchId]);

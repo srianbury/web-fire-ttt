@@ -2,6 +2,7 @@ import React, { useState, useContext } from "react";
 import { useHistory } from "react-router-dom";
 import FirebaseContext from "../FirebaseContext";
 import AuthenticationContext from "../Authentication";
+import { getRandomFirstTurn } from "../../Functions";
 
 const JoinContainer = () => {
   const [joining, setJoining] = useState(false);
@@ -27,12 +28,14 @@ const JoinContainer = () => {
       host: false
     };
     const nextPlayersState = [...currentPlayers, newPlayer];
+    const turn = getRandomFirstTurn(nextPlayersState);
     await firebase
       .firestore()
       .collection("matches")
       .doc(code)
       .update({
-        players: nextPlayersState
+        players: nextPlayersState,
+        turn
       });
     history.push(`/match/${code}`);
   }
