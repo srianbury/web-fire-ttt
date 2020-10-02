@@ -1,8 +1,8 @@
-import React, { useContext } from "react";
+import React, { useEffect, useContext } from "react";
 import { MatchContext } from "../Match";
 import AuthenticationContext from "../Authentication";
 import FirebaseContext from "../FirebaseContext";
-import { fullboard, rowWin, colWin, diagonalWin } from "./functions";
+import { gameover } from "./functions";
 import * as CONSTANTS from "../../Constants";
 
 import "./index.css";
@@ -22,7 +22,6 @@ const RematchContainer = () => {
   const { user } = useContext(AuthenticationContext);
   const { matchId, value } = useContext(MatchContext);
   const { board, players, gameState } = value;
-  const thisPlayer = players.find(player => player.uid === user.uid);
 
   async function toggleReady() {
     const nextPlayersState = players.map(player => {
@@ -40,7 +39,9 @@ const RematchContainer = () => {
       });
   }
 
-  if (gameover(board)) {
+  useEffect(() => {
+    console.log("Starting rematch");
+    const thisPlayer = players.find(player => player.uid === user.uid);
     if (
       bothPlayersAreReady(players) &&
       gameState === CONSTANTS.GAME_STATE_GAMEOVER &&
@@ -60,6 +61,9 @@ const RematchContainer = () => {
           players: nextPlayersState
         });
     }
+  }, [firebase, user, board, players, gameState, matchId]);
+
+  if (gameover(board).gameover) {
     return <RematchView players={players} toggleReady={toggleReady} />;
   }
   return null;
@@ -132,7 +136,7 @@ const SquareContainer = ({ index, mark }) => {
   const { matchId, value } = useContext(MatchContext);
   const { board, gameState } = value;
 
-  if (gameover(board) && gameState !== CONSTANTS.GAME_STATE_GAMEOVER) {
+  if (gameover(board).gameover && gameState !== CONSTANTS.GAME_STATE_GAMEOVER) {
     firebase
       .firestore()
       .collection("matches")
@@ -143,7 +147,7 @@ const SquareContainer = ({ index, mark }) => {
   }
 
   function onClick() {
-    if (mark || value.turn !== uid || gameover(board)) {
+    if (mark || value.turn !== uid || gameover(board).gameover) {
       return;
     }
 
@@ -166,10 +170,25 @@ const SquareContainer = ({ index, mark }) => {
       });
   }
 
-  return <SquareView onClick={onClick} mark={board[index]} uid={uid} />;
+  return (
+    <SquareView
+      index={index}
+      winningSet={gameover(board).winningSet}
+      onClick={onClick}
+      mark={board[index]}
+      uid={uid}
+    />
+  );
 };
-const SquareView = ({ onClick, mark, uid }) => (
-  <button type="button" className="square" onClick={onClick}>
+const SquareView = ({ index, winningSet, onClick, mark, uid }) => (
+  <button
+    style={{
+      color: winningSet.includes(index) ? "red" : "black"
+    }}
+    type="button"
+    className="square"
+    onClick={onClick}
+  >
     {getSquareMark(mark, uid)}
   </button>
 );
@@ -199,18 +218,32 @@ const TurnContainer = () => {
 
 const TurnView = ({ gameover, isPlayersTurn }) => (
   <div>
-    {gameover
-      ? "Gameover!"
-      : isPlayersTurn
-      ? "Your turn"
-      : "Waiting for opponent"}
+    {gameover.gameover ? (
+      <GameoverMessage winner={gameover.winner} />
+    ) : isPlayersTurn ? (
+      "Your turn"
+    ) : (
+      "Opponent's turn"
+    )}
   </div>
 );
 
-function gameover(board) {
-  return (
-    fullboard(board) || rowWin(board) || colWin(board) || diagonalWin(board)
-  );
-}
+const GameoverMessage = ({ winner }) => {
+  const { user } = useContext(AuthenticationContext);
+  const { value } = useContext(MatchContext);
+  const { players } = value;
+  const opponent = players.find(player => player.uid !== user.uid);
+
+  if (winner) {
+    return (
+      <div>
+        {winner === user.uid
+          ? "You win!"
+          : `${opponent.isAnonymous ? "Anon" : opponent.displayName} Wins`}
+      </div>
+    );
+  }
+  return <div>Tie!</div>;
+};
 
 export default GameboardContainer;
