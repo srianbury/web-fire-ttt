@@ -57,7 +57,7 @@ const JoinView = ({ code, setCode, onClick, joining }) => (
       type="text"
       value={code}
       placeholder="Match code"
-      onChange={e => setCode(e.target.value)}
+      onChange={e => setCode(e.target.value.toUpperCase())}
     />
     <button type="button" disabled={joining} onClick={onClick}>
       {joining ? "Joining..." : "Join!"}
