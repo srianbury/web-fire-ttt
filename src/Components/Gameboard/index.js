@@ -129,14 +129,15 @@ const GameboardView = () => (
   </div>
 );
 
-const SquareContainer = ({ index, mark }) => {
+const SquareContainer = ({ index }) => {
   const firebase = useContext(FirebaseContext);
   const { user } = useContext(AuthenticationContext);
   const { uid } = user;
   const { matchId, value } = useContext(MatchContext);
   const { board, gameState } = value;
+  const gameoverState = gameover(board);
 
-  if (gameover(board).gameover && gameState !== CONSTANTS.GAME_STATE_GAMEOVER) {
+  if (gameoverState.gameover && gameState !== CONSTANTS.GAME_STATE_GAMEOVER) {
     firebase
       .firestore()
       .collection("matches")
@@ -147,7 +148,7 @@ const SquareContainer = ({ index, mark }) => {
   }
 
   function onClick() {
-    if (mark || value.turn !== uid || gameover(board).gameover) {
+    if (board[index] || value.turn !== uid || gameoverState.gameover) {
       return;
     }
 
@@ -173,7 +174,7 @@ const SquareContainer = ({ index, mark }) => {
   return (
     <SquareView
       index={index}
-      winningSet={gameover(board).winningSet}
+      winningSet={gameoverState.winningSet}
       onClick={onClick}
       mark={board[index]}
       uid={uid}
@@ -212,14 +213,17 @@ const TurnContainer = () => {
   const { turn } = value;
 
   return (
-    <TurnView gameover={gameover(value.board)} isPlayersTurn={uid === turn} />
+    <TurnView
+      gameoverState={gameover(value.board)}
+      isPlayersTurn={uid === turn}
+    />
   );
 };
 
-const TurnView = ({ gameover, isPlayersTurn }) => (
+const TurnView = ({ gameoverState, isPlayersTurn }) => (
   <div>
-    {gameover.gameover ? (
-      <GameoverMessage winner={gameover.winner} />
+    {gameoverState.gameover ? (
+      <GameoverMessage winner={gameoverState.winner} />
     ) : isPlayersTurn ? (
       "Your turn"
     ) : (
