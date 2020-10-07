@@ -14,31 +14,33 @@ const JoinContainer = () => {
 
   async function onClick() {
     setJoining(true);
-    const value = await firebase
+    const matchDocRef = firebase
       .firestore()
       .collection("matches")
-      .doc(code)
-      .get();
-    const { players: currentPlayers } = value.data();
-    const opponent = currentPlayers.find(player => player.uid !== user.uid);
-    const newPlayer = {
-      displayName,
-      isAnonymous,
-      uid,
-      ready: false,
-      host: false,
-      mark: getOppositeMark(opponent.mark)
-    };
-    const nextPlayersState = [...currentPlayers, newPlayer];
-    const turn = getRandomFirstTurn(nextPlayersState);
-    await firebase
-      .firestore()
-      .collection("matches")
-      .doc(code)
-      .update({
-        players: firebase.firestore.FieldValue.arrayUnion(newPlayer),
-        turn
-      });
+      .doc(code);
+    await firebase.firestore().runTransaction(async transaction => {
+      const matchDoc = await transaction.get(matchDocRef);
+      // if(!matchDoc.exists){
+      //   throw Error('TODO: This match ID doesnt exists.')
+      // }
+      if (matchDoc.data().players.length === 2) {
+        throw Error("TODO: This match already has 2 players");
+      } else {
+        const { players: currentPlayers } = matchDoc.data();
+        const opponent = currentPlayers.find(player => player.uid !== user.uid);
+        const newPlayer = {
+          displayName,
+          isAnonymous,
+          uid,
+          ready: false,
+          host: false,
+          mark: getOppositeMark(opponent.mark)
+        };
+        const nextPlayersState = [...currentPlayers, newPlayer];
+        const turn = getRandomFirstTurn(nextPlayersState);
+        transaction.update(matchDocRef, { players: nextPlayersState, turn });
+      }
+    });
     history.push(`/match/${code}`);
   }
 
