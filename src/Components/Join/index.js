@@ -36,7 +36,7 @@ const JoinContainer = () => {
       .collection("matches")
       .doc(code)
       .update({
-        players: nextPlayersState,
+        players: firebase.firestore.FieldValue.arrayUnion(newPlayer),
         turn
       });
     history.push(`/match/${code}`);
