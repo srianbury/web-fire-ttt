@@ -6,7 +6,7 @@ import Loading from "../Loading";
 import AuthenticationContext from "../Authentication";
 import Gameboard from "../Gameboard";
 import * as CONSTANTS from "../../Constants";
-import { bothPlayersAreReady } from "../../Functions";
+import { bothPlayersAreReady, toggleReady } from "../../Functions";
 
 const MatchContext = createContext(null);
 const MatchContextProvider = ({ children }) => {
@@ -62,22 +62,6 @@ const MatchContainer = () => {
     }
   }
 
-  async function toggleReady() {
-    const nextPlayersState = value.players.map(player => {
-      if (player.uid !== user.uid) {
-        return player;
-      }
-      return { ...player, ready: !player.ready };
-    });
-    firebase
-      .firestore()
-      .collection("matches")
-      .doc(matchId)
-      .update({
-        players: nextPlayersState
-      });
-  }
-
   if (loading) {
     return <Loading />;
   }
@@ -85,7 +69,7 @@ const MatchContainer = () => {
     <MatchView
       matchId={matchId}
       players={value.players}
-      toggleReady={toggleReady}
+      toggleReady={async () => await toggleReady(firebase, user, matchId)}
       gameState={value.gameState}
     />
   );

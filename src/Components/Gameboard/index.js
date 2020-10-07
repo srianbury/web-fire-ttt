@@ -4,7 +4,11 @@ import AuthenticationContext from "../Authentication";
 import FirebaseContext from "../FirebaseContext";
 import { gameover } from "./functions";
 import * as CONSTANTS from "../../Constants";
-import { getRandomFirstTurn, bothPlayersAreReady } from "../../Functions";
+import {
+  getRandomFirstTurn,
+  bothPlayersAreReady,
+  toggleReady
+} from "../../Functions";
 
 import "./index.css";
 
@@ -13,22 +17,6 @@ const RematchContainer = () => {
   const { user } = useContext(AuthenticationContext);
   const { matchId, value } = useContext(MatchContext);
   const { board, players, gameState } = value;
-
-  async function toggleReady() {
-    const nextPlayersState = players.map(player => {
-      if (player.uid !== user.uid) {
-        return player;
-      }
-      return { ...player, ready: !player.ready };
-    });
-    firebase
-      .firestore()
-      .collection("matches")
-      .doc(matchId)
-      .update({
-        players: nextPlayersState
-      });
-  }
 
   useEffect(() => {
     console.log("Starting rematch");
@@ -57,7 +45,12 @@ const RematchContainer = () => {
   }, [firebase, user, board, players, gameState, matchId]);
 
   if (gameover(board).gameover) {
-    return <RematchView players={players} toggleReady={toggleReady} />;
+    return (
+      <RematchView
+        players={players}
+        toggleReady={async () => await toggleReady(firebase, user, matchId)}
+      />
+    );
   }
   return null;
 };
