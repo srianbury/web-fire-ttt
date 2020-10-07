@@ -4,19 +4,9 @@ import AuthenticationContext from "../Authentication";
 import FirebaseContext from "../FirebaseContext";
 import { gameover } from "./functions";
 import * as CONSTANTS from "../../Constants";
-import { getRandomFirstTurn } from "../../Functions";
+import { getRandomFirstTurn, bothPlayersAreReady } from "../../Functions";
 
 import "./index.css";
-
-function bothPlayersAreReady(players) {
-  let ready = true;
-  players.forEach(player => {
-    if (!player.ready) {
-      ready = false;
-    }
-  });
-  return ready;
-}
 
 const RematchContainer = () => {
   const firebase = useContext(FirebaseContext);

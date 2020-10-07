@@ -11,4 +11,19 @@ function getOppositeMark(opponentsMark) {
   return opponentsMark === "X" ? "O" : "X";
 }
 
-export { getRandomFirstTurn, getRandomMark, getOppositeMark };
+function bothPlayersAreReady(players) {
+  let ready = true;
+  players.forEach(player => {
+    if (!player.ready) {
+      ready = false;
+    }
+  });
+  return ready;
+}
+
+export {
+  getRandomFirstTurn,
+  getRandomMark,
+  getOppositeMark,
+  bothPlayersAreReady
+};

@@ -6,16 +6,7 @@ import Loading from "../Loading";
 import AuthenticationContext from "../Authentication";
 import Gameboard from "../Gameboard";
 import * as CONSTANTS from "../../Constants";
-
-function bothPlayersAreReady(players) {
-  let ready = true;
-  players.forEach(player => {
-    if (!player.ready) {
-      ready = false;
-    }
-  });
-  return ready;
-}
+import { bothPlayersAreReady } from "../../Functions";
 
 const MatchContext = createContext(null);
 const MatchContextProvider = ({ children }) => {
